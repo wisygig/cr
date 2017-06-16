@@ -1,10 +1,27 @@
 import json
 import numpy as np
 import pandas as pd
+import re
 import requests
 
 _stats = ['strength', 'dexterity', 'constitution',
          'intelligence', 'wisdom', 'charisma']
+
+_column_order = ['challenge_rating', 'armor_class', 'hit_dice', 'hit_points',
+                 'condition_immunities', 'damage_immunities',
+                 'damage_resistances', 'damage_vulnerabilities', 'actions',
+                 'reactions', 'legendary_actions', 'special_abilities', 'size',
+                 'speed', 'languages', 'senses', 'subtype', 'type', 'alignment',
+                 'strength', 'strength_mod', 'strength_save', 'dexterity',
+                 'dexterity_mod', 'dexterity_save', 'constitution',
+                 'constitution_mod', 'constitution_save', 'intelligence',
+                 'intelligence_mod', 'intelligence_save', 'wisdom',
+                 'wisdom_mod', 'wisdom_save', 'charisma', 'charisma_mod',
+                 'charisma_save', 'acrobatics', 'arcana', 'athletics',
+                 'deception', 'history',  'insight', 'intimidation',
+                 'investigation', 'medicine', 'nature', 'perception',
+                 'performance',  'persuasion', 'religion', 'stealth', 'survival'
+                 ]
 
 
 def main():
@@ -26,15 +43,8 @@ def get_monster_df(monsters):
     df = df.set_index(['name'])
     df = fix_saves(df)
     df = fix_skills(df)
-    seq = ['challenge_rating', 'armor_class', 'hit_dice', 'hit_points',
-       'condition_immunities',
-       'damage_immunities', 'damage_resistances', 'damage_vulnerabilities',
-       'actions', 'reactions', 'legendary_actions', 'special_abilities',
-       'size', 'speed',
-       'languages', 'senses', 'subtype', 'type', 'alignment',
-       'strength', 'strength_mod', 'strength_save', 'dexterity', 'dexterity_mod', 'dexterity_save', 'constitution', 'constitution_mod', 'constitution_save', 'intelligence', 'intelligence_mod', 'intelligence_save', 'wisdom', 'wisdom_mod', 'wisdom_save', 'charisma', 'charisma_mod', 'charisma_save', 'acrobatics', 'arcana', 'athletics', 'deception', 'history',  'insight', 'intimidation', 'investigation', 'medicine', 'nature', 'perception', 'performance',  'persuasion', 'religion', 'stealth', 'survival',
-       ]
-    return df.reindex(columns=seq)
+    df.challenge_rating = df.challenge_rating.apply(fix_challenge_rating)
+    return df.reindex(columns=_column_order)
 
 
 
@@ -68,6 +78,16 @@ def fix_skills(df):
     for skill, stat in skills.items():
         df[skill].fillna(df[stat+'_mod'], inplace=True)
     return df
+
+
+def fix_challenge_rating(cr):
+    pattern = re.compile(r'(?P<p>\d)/(?P<q>\d)$|(?P<n>\d+)')
+    g = re.match(pattern, cr)
+    try:
+        x = int(g.group('p')) / int(g.group('q'))
+    except:
+        x = int(g.group('n'))
+    return x
 
 
 if __name__ == '__main__':
