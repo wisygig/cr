@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Distribution / packaging
+lib/
+
+# venv
+bin/
+include/
+pyvenv.cfg
+pip-selfcheck.json
+
+# resources
+SRD-OGL_V5.1.pdf
+5e-SRD-Monsters.json
