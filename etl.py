@@ -24,10 +24,12 @@ _column_order = ['challenge_rating', 'armor_class', 'hit_dice', 'hit_points',
                  ]
 
 
-def main():
+def get_dfs():
     monsters, ogl = get_monsters()
     monster_df = get_monster_df(monsters)
-    return monster_df
+    sub_df = monster_df[_column_order[:_column_order.index('strength')]]
+    action_df = get_actions_df(sub_df)
+    return monster_df, sub_df, action_df
 
 
 def get_monsters():
@@ -90,5 +92,11 @@ def fix_challenge_rating(cr):
     return x
 
 
+def get_actions_df(sub_df):
+    actions = [x for x in sub_df.actions[sub_df.actions.notnull()]]
+    actions = [x for y in actions for x in y]
+    return pd.DataFrame(actions)
+
+
 if __name__ == '__main__':
-    main()
+    monster_df, sub_df, action_df = get_dfs()
