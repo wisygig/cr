@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import os
 import pandas as pd
 import re
 import requests
@@ -28,13 +29,16 @@ def get_dfs():
     monsters, ogl = get_monsters()
     monster_df = get_monster_df(monsters)
     sub_df = monster_df[_column_order[:_column_order.index('strength')]]
-    action_df = get_actions_df(sub_df)
+    action_df = get_action_df(sub_df)
     return monster_df, sub_df, action_df
 
 
 def get_monsters():
-    url = 'https://dl.dropboxusercontent.com/s/iwz112i0bxp2n4a/5e-SRD-Monsters.json'
-    data = json.loads(requests.get(url).text)
+    if os.path.exists('5e-STD-Monsters.json'):
+        data = json.load(open('5e-STD-Monsters.json', 'r'))
+    else:
+        url = 'https://dl.dropboxusercontent.com/s/iwz112i0bxp2n4a/5e-SRD-Monsters.json'
+        data = json.loads(requests.get(url).text)
     monsters = data[:-1]
     ogl = data[-1]
     return monsters, ogl
@@ -92,11 +96,30 @@ def fix_challenge_rating(cr):
     return x
 
 
-def get_actions_df(sub_df):
+def get_action_df(sub_df):
     actions = [x for x in sub_df.actions[sub_df.actions.notnull()]]
     actions = [x for y in actions for x in y]
-    return pd.DataFrame(actions)
+    action_df = pd.DataFrame(actions)
 
+    # typo in multiple? 'Weapon Attack', in veteran and scorpion
+
+    # melee_template = r'Melee Weapon Attack: ' + \
+    #                  r'+(?P<to_hit>\d+) to hit, reach (?P<reach>\d+) ft., ' +\
+    #                  r'(?P<number>\w+) target.'
+    # pattern = re.compile(melee_template)
+    melee_template = '|'.join([r'Weapon Attack:', 'Melee Weapon Attack:',
+                               r'Melee or Ranged Weapon Attack:'])
+    action_df['melee_attack'] = action_df.desc.str.match(melee_template)
+    ranged_template = '|'.join([r'Ranged Weapon Attack:',
+                                r'Melee or Ranged Weapon Attack:'])
+    action_df['range_attack'] = action_df.desc.str.match(ranged_template)
+    spell_attack = '|'.join([r'Melee Spell Attack:', r'Ranged Spell Attack:'])
+    action_df['spell_attack'] = action_df.desc.str.match(spell_attack)
+    multiattack = r'Multiattack'
+    action_df['multiattack'] = action_df.name.str.match(multiattack)
+
+    # action_df[~action_df.melee_attack & ~action_df.range_attack & ~action_df.spell_attack & ~action_df.multiattack][['name', 'desc']]
+    return action_df
 
 if __name__ == '__main__':
     monster_df, sub_df, action_df = get_dfs()
