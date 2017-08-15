@@ -5,40 +5,64 @@ import pandas as pd
 import re
 import requests
 
-_stats = ['strength', 'dexterity', 'constitution',
-         'intelligence', 'wisdom', 'charisma']
+_stats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom',
+          'charisma']
 
-_column_order = ['challenge_rating', 'armor_class', 'hit_dice', 'hit_points',
-                 'condition_immunities', 'damage_immunities',
-                 'damage_resistances', 'damage_vulnerabilities', 'actions',
-                 'reactions', 'legendary_actions', 'special_abilities', 'size',
-                 'speed', 'languages', 'senses', 'subtype', 'type', 'alignment',
-                 'strength', 'strength_mod', 'strength_save', 'dexterity',
-                 'dexterity_mod', 'dexterity_save', 'constitution',
-                 'constitution_mod', 'constitution_save', 'intelligence',
-                 'intelligence_mod', 'intelligence_save', 'wisdom',
-                 'wisdom_mod', 'wisdom_save', 'charisma', 'charisma_mod',
-                 'charisma_save', 'acrobatics', 'arcana', 'athletics',
-                 'deception', 'history',  'insight', 'intimidation',
-                 'investigation', 'medicine', 'nature', 'perception',
-                 'performance',  'persuasion', 'religion', 'stealth', 'survival'
-                 ]
+_mechanics = ['challenge_rating', 'armor_class', 'hit_dice', 'hit_points',
+              'condition_immunities', 'damage_immunities',
+              'damage_resistances', 'damage_vulnerabilities', 'actions',
+              'reactions', 'legendary_actions', 'special_abilities', 'size',
+              'speed', 'senses']
+
+_flavor = ['languages', 'subtype', 'type', 'alignment']
+
+_stat_scores = ['strength', 'strength_mod', 'strength_save', 'dexterity',
+                'dexterity_mod', 'dexterity_save', 'constitution',
+                'constitution_mod', 'constitution_save', 'intelligence',
+                'intelligence_mod', 'intelligence_save', 'wisdom',
+                'wisdom_mod', 'wisdom_save', 'charisma', 'charisma_mod',
+                'charisma_save']
+
+_skills = ['acrobatics', 'arcana', 'athletics', 'deception', 'history',
+           'insight', 'intimidation', 'investigation', 'medicine', 'nature',
+           'perception', 'performance',  'persuasion', 'religion', 'stealth',
+           'survival']
+
+_column_order = _mechanics + _flavor + _stat_scores + _skills
+
+_skills_stats = {'acrobatics': 'dexterity',
+                 'arcana': 'intelligence',
+                 'athletics': 'strength',
+                 'deception': 'charisma',
+                 'history': 'intelligence',
+                 'insight': 'wisdom',
+                 'intimidation': 'charisma',
+                 'investigation': 'intelligence',
+                 'medicine': 'wisdom',
+                 'nature': 'intelligence',
+                 'perception': 'wisdom',
+                 'performance': 'charisma',
+                 'persuasion': 'charisma',
+                 'religion': 'intelligence',
+                 'stealth': 'dexterity',
+                 'survival': 'wisdom'}
 
 
 def get_dfs():
-    monsters, ogl = get_monsters()
+    monsters, ogl = load_monsters()
     monster_df = get_monster_df(monsters)
-    sub_df = monster_df[_column_order[:_column_order.index('strength')]]
-    action_df = get_action_df(sub_df)
-    return monster_df, sub_df, action_df
+    action_df = get_action_df(monster_df.actions)
+    return monster_df, action_df
 
 
-def get_monsters():
+def load_monsters():
     if os.path.exists('5e-STD-Monsters.json'):
         data = json.load(open('5e-STD-Monsters.json', 'r'))
     else:
-        url = 'https://dl.dropboxusercontent.com/s/iwz112i0bxp2n4a/5e-SRD-Monsters.json'
-        data = json.loads(requests.get(url).text)
+        url = 'https://dl.dropboxusercontent.com/' \
+              + 's/iwz112i0bxp2n4a/5e-SRD-Monsters.json'
+        response = requests.get(url)
+        data = json.loads(response.text)
     monsters = data[:-1]
     ogl = data[-1]
     return monsters, ogl
@@ -53,35 +77,18 @@ def get_monster_df(monsters):
     return df.reindex(columns=_column_order)
 
 
-
 def fix_saves(df):
     mods = [stat + '_mod' for stat in _stats]
     saves = [stat + '_save' for stat in _stats]
     for stat, mod in zip(_stats, mods):
-        df[mod] = np.floor((df[stat] -10 )/ 2)
+        df[mod] = np.floor((df[stat] - 10) / 2)
     for mod, save in zip(mods, saves):
         df[save].fillna(df[mod], inplace=True)
     return df
 
 
 def fix_skills(df):
-    skills = {'acrobatics': 'dexterity',
-              'arcana': 'intelligence',
-              'athletics': 'strength',
-              'deception': 'charisma',
-              'history': 'intelligence',
-              'insight': 'wisdom',
-              'intimidation': 'charisma',
-              'investigation': 'intelligence',
-              'medicine': 'wisdom',
-              'nature': 'intelligence',
-              'perception': 'wisdom',
-              'performance': 'charisma',
-              'persuasion': 'charisma',
-              'religion': 'intelligence',
-              'stealth': 'dexterity',
-              'survival': 'wisdom'}
-    for skill, stat in skills.items():
+    for skill, stat in _skills_stats.items():
         df[skill].fillna(df[stat+'_mod'], inplace=True)
     return df
 
@@ -96,8 +103,8 @@ def fix_challenge_rating(cr):
     return x
 
 
-def get_action_df(sub_df):
-    actions = [x for x in sub_df.actions[sub_df.actions.notnull()]]
+def get_action_df(series):
+    actions = [x for x in series[series.notnull()]]
     actions = [x for y in actions for x in y]
     action_df = pd.DataFrame(actions)
 
@@ -118,8 +125,6 @@ def get_action_df(sub_df):
     multiattack = r'Multiattack'
     action_df['multiattack'] = action_df.name.str.match(multiattack)
 
-    # action_df[~action_df.melee_attack & ~action_df.range_attack & ~action_df.spell_attack & ~action_df.multiattack][['name', 'desc']]
+    # action_df[~action_df.melee_attack & ~action_df.range_attack & \
+    #     ~action_df.spell_attack & ~action_df.multiattack][['name', 'desc']]
     return action_df
-
-if __name__ == '__main__':
-    monster_df, sub_df, action_df = get_dfs()
