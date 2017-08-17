@@ -68,14 +68,22 @@ def load_monsters():
     return monsters, ogl
 
 
+def replace_nan(df, column, func):
+    for x in df.loc[df[column].isnull(), column].index:
+        df.at[x, column] = func()
+
+
 def get_monster_df(monsters):
     df = pd.DataFrame(monsters)
     df = df.set_index(['name'])
     df = fix_saves(df)
     df = fix_skills(df)
     df.challenge_rating = df.challenge_rating.apply(fix_challenge_rating)
-    return df.reindex(columns=_column_order)
-
+    df = df.reindex(columns=_column_order)
+    columns_with_nan = df.columns[df.isnull().apply(any, axis=0)]
+    for column in columns_with_nan:
+        replace_nan(df, column, list)
+    return df
 
 def fix_saves(df):
     mods = [stat + '_mod' for stat in _stats]
