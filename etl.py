@@ -56,8 +56,8 @@ def get_dfs():
 
 
 def load_monsters():
-    if os.path.exists('5e-STD-Monsters.json'):
-        data = json.load(open('5e-STD-Monsters.json', 'r'))
+    if os.path.exists('5e-SRD-Monsters.json'):
+        data = json.load(open('5e-SRD-Monsters.json', 'r'))
     else:
         url = 'https://dl.dropboxusercontent.com/' \
               + 's/iwz112i0bxp2n4a/5e-SRD-Monsters.json'
