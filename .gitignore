@@ -17,5 +17,6 @@ SRD-OGL_V5.1.pdf
 data/
 
 # Juptyer
+etc/
 share/
 .ipynb_checkpoints/
