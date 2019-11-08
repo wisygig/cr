@@ -38,7 +38,7 @@ mord==0.4
 murmurhash==0.26.4
 nbconvert==5.2.1
 nbformat==4.3.0
-notebook==5.0.0
+notebook==5.7.8
 numpy==1.13.0
 palettable==3.0.0
 pandas==0.20.2
