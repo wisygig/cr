@@ -1,5 +1,5 @@
 appnope==0.1.0
-bleach==1.5.0
+bleach==3.1.2
 boto==2.48.0
 brewer2mpl==1.4.1
 bz2file==0.98
